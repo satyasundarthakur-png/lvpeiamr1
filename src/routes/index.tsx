@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   PieChart,
   Pie,
@@ -13,7 +13,9 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import { infectionRecords } from "@/data/infectionRecords";
+import { sampleRecords, type InfectionRecord } from "@/data/infectionRecords";
+import { loadSavedRecords, saveRecords, clearSavedRecords } from "@/dataImport";
+import UploadPanel from "@/UploadPanel";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -58,7 +60,7 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
   );
 }
 
-function countBy(rows: typeof infectionRecords, key: (r: (typeof infectionRecords)[number]) => string) {
+function countBy(rows: InfectionRecord[], key: (r: InfectionRecord) => string) {
   const counts: Record<string, number> = {};
   rows.forEach((r) => {
     const k = key(r) || "Unknown";
@@ -70,26 +72,52 @@ function countBy(rows: typeof infectionRecords, key: (r: (typeof infectionRecord
 }
 
 function Dashboard() {
+  const [records, setRecords] = useState<InfectionRecord[]>(sampleRecords);
+  const [usingUploadedData, setUsingUploadedData] = useState(false);
   const [campusFilter, setCampusFilter] = useState("All");
   const [wardFilter, setWardFilter] = useState("All");
 
+  useEffect(() => {
+    const saved = loadSavedRecords();
+    if (saved && saved.length > 0) {
+      setRecords(saved);
+      setUsingUploadedData(true);
+    }
+  }, []);
+
+  function handleImport(newRecords: InfectionRecord[]) {
+    setRecords(newRecords);
+    setUsingUploadedData(true);
+    saveRecords(newRecords);
+    setWardFilter("All");
+    setCampusFilter("All");
+  }
+
+  function handleReset() {
+    setRecords(sampleRecords);
+    setUsingUploadedData(false);
+    clearSavedRecords();
+    setWardFilter("All");
+    setCampusFilter("All");
+  }
+
   const campuses = useMemo(
-    () => ["All", ...Array.from(new Set(infectionRecords.map((r) => r.hospitalId).filter(Boolean)))],
-    [],
+    () => ["All", ...Array.from(new Set(records.map((r) => r.hospitalId).filter(Boolean)))],
+    [records],
   );
   const wards = useMemo(
-    () => ["All", ...Array.from(new Set(infectionRecords.map((r) => r.wardType).filter(Boolean)))],
-    [],
+    () => ["All", ...Array.from(new Set(records.map((r) => r.wardType).filter(Boolean)))],
+    [records],
   );
 
   const filtered = useMemo(
     () =>
-      infectionRecords.filter(
+      records.filter(
         (r) =>
           (campusFilter === "All" || r.hospitalId === campusFilter) &&
           (wardFilter === "All" || r.wardType === wardFilter),
       ),
-    [campusFilter, wardFilter],
+    [records, campusFilter, wardFilter],
   );
 
   const total = filtered.length;
@@ -155,6 +183,13 @@ function Dashboard() {
           </select>
         </div>
       </header>
+
+      <UploadPanel
+        onImport={handleImport}
+        onReset={handleReset}
+        usingUploadedData={usingUploadedData}
+        recordCount={records.length}
+      />
 
       <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-5">
         <KpiCard label="Total Infection Cases" value={total} accent="text-cyan-400" />

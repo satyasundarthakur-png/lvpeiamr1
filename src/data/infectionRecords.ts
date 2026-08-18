@@ -5,7 +5,7 @@ export interface InfectionRecord {
   age: string; district: string; state: string; locationType: string;
 }
 
-export const infectionRecords: InfectionRecord[] = [
+export const sampleRecords: InfectionRecord[] = [
   {
     "id": "600000",
     "hospitalId": "Satellite Campus (Warangal)",
