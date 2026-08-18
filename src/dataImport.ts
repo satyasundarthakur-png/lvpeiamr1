@@ -80,6 +80,9 @@ export async function parseFile(file: File): Promise<InfectionRecord[]> {
     throw new Error("No sheet found in the uploaded file.");
   }
   const sheet = workbook.Sheets[firstSheetName];
+  if (!sheet) {
+    throw new Error("First sheet is empty in the uploaded file.");
+  }
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
   if (rows.length === 0) {
     throw new Error("No rows found in the first sheet of the uploaded file.");
