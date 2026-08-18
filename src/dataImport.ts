@@ -76,6 +76,9 @@ export async function parseFile(file: File): Promise<InfectionRecord[]> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
   const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) {
+    throw new Error("No sheet found in the uploaded file.");
+  }
   const sheet = workbook.Sheets[firstSheetName];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
   if (rows.length === 0) {
